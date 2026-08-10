@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do search rankings under-capture their fair share of clicks? — CTR Opportunity Scoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10161F;
+    --panel:#161F2B;
+    --panel-line:#26313F;
+    --ink:#E7ECF1;
+    --ink-dim:#93A2B3;
+    --amber:#E8A33D;
+    --teal:#4FBDBA;
+    --max:920px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter',sans-serif; font-size:17px; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--amber);}
+  a:focus-visible, button:focus-visible{outline:2px solid var(--teal); outline-offset:3px;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600; line-height:1.15; margin:0 0 .5em;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--amber); margin-bottom:12px;}
+
+  /* HERO */
+  .hero{padding:96px 0 64px; border-bottom:1px solid var(--panel-line);}
+  .hero h1{font-size:clamp(30px,4.4vw,46px); max-width:15ch;}
+  .hero .abstract{color:var(--ink-dim); font-size:18px; max-width:62ch; margin-top:20px;}
+  .hero .stat-row{display:flex; gap:36px; flex-wrap:wrap; margin-top:44px;}
+  .stat{}
+  .stat .num{font-family:'IBM Plex Mono',monospace; font-size:28px; color:var(--teal);}
+  .stat .label{color:var(--ink-dim); font-size:13px; margin-top:2px;}
+
+  /* CURVE — the signature element */
+  .curve-panel{background:var(--panel); border:1px solid var(--panel-line); border-radius:4px; padding:28px 28px 20px; margin-top:48px;}
+  .curve-title{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink-dim); margin-bottom:18px;}
+  .curve-title b{color:var(--ink);}
+  svg text{font-family:'IBM Plex Mono',monospace; fill:var(--ink-dim);}
+  .bar{fill:var(--amber);}
+  .bar.anomaly{fill:var(--teal);}
+  .caption{font-size:14px; color:var(--ink-dim); margin-top:14px; border-top:1px solid var(--panel-line); padding-top:14px;}
+  .caption b{color:var(--ink);}
+
+  section{padding:56px 0; border-bottom:1px solid var(--panel-line);}
+  section:last-of-type{border-bottom:none;}
+  section h2{font-size:26px; margin-bottom:20px;}
+  section p{margin:0 0 16px;}
+  .lede{font-size:19px; color:var(--ink);}
+
+  table{width:100%; border-collapse:collapse; margin:20px 0; font-family:'IBM Plex Mono',monospace; font-size:14px;}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--panel-line);}
+  th{color:var(--ink-dim); font-weight:500; text-transform:uppercase; font-size:12px; letter-spacing:.05em;}
+  td.amber{color:var(--amber);}
+  td.teal{color:var(--teal);}
+
+  .card-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;}
+  @media (max-width:640px){.card-grid{grid-template-columns:1fr;} .hero{padding:64px 0 48px;}}
+  .card{background:var(--panel); border:1px solid var(--panel-line); border-radius:4px; padding:20px;}
+  .card .tag{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--amber); text-transform:uppercase; letter-spacing:.04em;}
+  .card p{margin:8px 0 0; font-size:15px; color:var(--ink-dim);}
+
+  ol.rec{padding-left:0; list-style:none; counter-reset:rec;}
+  ol.rec li{counter-increment:rec; display:flex; gap:16px; padding:16px 0; border-bottom:1px solid var(--panel-line);}
+  ol.rec li:last-child{border-bottom:none;}
+  ol.rec li::before{content:counter(rec); font-family:'IBM Plex Mono',monospace; color:var(--amber); font-size:20px; flex:0 0 32px;}
+
+  .limits{background:var(--panel); border-left:3px solid var(--amber); padding:18px 22px; border-radius:0 4px 4px 0;}
+  .limits li{margin-bottom:10px;}
+
+  footer{padding:48px 0 80px; color:var(--ink-dim); font-size:14px;}
+  footer a{color:var(--ink-dim); text-decoration:underline;}
+  code{background:var(--panel); padding:2px 6px; border-radius:3px; font-size:.9em;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Search Intelligence · CTR / Engagement Opportunity Scoring</div>
+    <h1>Do top-ranking pages always earn the clicks their position should predict?</h1>
+    <p class="abstract">
+      Using 198,480 published content items from FlyRank's pseudonymized search-performance
+      warehouse, I built an expected-click-through-rate benchmark by search position, then
+      scored every page against it to find pages that under-capture clicks relative to peers
+      at the same rank. The resulting opportunity list is impression-weighted, carries a reason
+      code per page, and surfaces a real anomaly — position 11-20 out-clicks position 6-10 — that
+      a smoothed curve would have hidden. This is decision-support for a content team choosing
+      what to review next, not a claim about why any single page underperforms.
+    </p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">198,480</div><div class="label">content items analyzed</div></div>
+      <div class="stat"><div class="num">6</div><div class="label">position buckets benchmarked</div></div>
+      <div class="stat"><div class="num">0.0006–0.0058</div><div class="label">expected CTR range by position</div></div>
+    </div>
+
+    <div class="curve-panel">
+      <div class="curve-title">Expected CTR by position bucket — <b>impression-weighted, sample month (June 2026)</b></div>
+      <svg viewBox="0 0 820 260" width="100%" height="auto" role="img" aria-label="Bar chart of expected click-through rate by search position bucket, showing decay from position 1-3 to 51+, with an anomaly at 11-20 exceeding 6-10">
+        <!-- baseline -->
+        <line x1="60" y1="210" x2="800" y2="210" stroke="#26313F" stroke-width="1"/>
+        <!-- bars: values scaled to max 0.006 -->
+        <!-- 1-3: .005845 -->
+        <rect class="bar" x="70" y="210" width="90" height="0"><animate attributeName="height" from="0" to="141" dur="0.01s" fill="freeze"/></rect>
+        <rect class="bar" x="70" y="69" width="90" height="141"/>
+        <text x="115" y="230" text-anchor="middle" font-size="12">1-3</text>
+        <text x="115" y="59" text-anchor="middle" font-size="12" fill="#E7ECF1">0.58%</text>
+        <!-- 4-5: .005400 -->
+        <rect class="bar" x="185" y="80" width="90" height="130"/>
+        <text x="230" y="230" text-anchor="middle" font-size="12">4-5</text>
+        <text x="230" y="70" text-anchor="middle" font-size="12" fill="#E7ECF1">0.54%</text>
+        <!-- 6-10: .003434 -->
+        <rect class="bar" x="300" y="127" width="90" height="83"/>
+        <text x="345" y="230" text-anchor="middle" font-size="12">6-10</text>
+        <text x="345" y="117" text-anchor="middle" font-size="12" fill="#E7ECF1">0.34%</text>
+        <!-- 11-20: .004011  ANOMALY -->
+        <rect class="bar anomaly" x="415" y="113" width="90" height="97"/>
+        <text x="460" y="230" text-anchor="middle" font-size="12">11-20</text>
+        <text x="460" y="103" text-anchor="middle" font-size="12" fill="#4FBDBA">0.40% ▲</text>
+        <!-- 21-50: .002638 -->
+        <rect class="bar" x="530" y="146" width="90" height="64"/>
+        <text x="575" y="230" text-anchor="middle" font-size="12">21-50</text>
+        <text x="575" y="136" text-anchor="middle" font-size="12" fill="#E7ECF1">0.26%</text>
+        <!-- 51+: .000714 -->
+        <rect class="bar" x="645" y="193" width="90" height="17"/>
+        <text x="690" y="230" text-anchor="middle" font-size="12">51+</text>
+        <text x="690" y="183" text-anchor="middle" font-size="12" fill="#E7ECF1">0.07%</text>
+      </svg>
+      <div class="caption">
+        CTR falls roughly 88% from position 1-3 to 51+, as expected — but positions 11-20
+        (teal) out-click positions 6-10, against the overall trend. Both buckets are large
+        (41k and 62k pages), so this isn't sampling noise; the paper's Limitations section
+        treats it as a real, unexplained pattern rather than smoothing it away.
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Introduction</div>
+    <h2>The decision this supports</h2>
+    <p class="lede">A content team with hundreds of published pages can't manually audit every one for "is this doing as well as it should." They need a ranked, explainable shortlist.</p>
+    <p>Position alone is a poor proxy for success — a page can rank well and still under-perform its peers at that same rank, silently losing clicks to a weak title, a mismatched snippet, or a SERP feature eating the top spot. This work builds an empirical benchmark for "what CTR should a page at this position expect," then flags pages that fall short of it by a meaningful, traffic-weighted margin — turning a vague "something might be wrong" into a ranked list a human can act on.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Data</div>
+    <h2>Source, scope, and exclusions</h2>
+    <p>Built on the <strong>FlyRank Internship Warehouse Release (v20260703)</strong>, a pseudonymized star-schema dataset hosted on Hugging Face and accessed via DuckDB directly over <code>hf://</code> — no data downloaded in bulk.</p>
+    <table>
+      <tr><th>Table</th><th>Role</th><th>Rows used</th></tr>
+      <tr><td class="mono">dim_content</td><td>Content metadata, publish/delete flags</td><td class="mono">519,606</td></tr>
+      <tr><td class="mono">fact_content_daily_performance_sample</td><td>GSC clicks/impressions/position — final month of the panel (June 2026)</td><td class="mono">198,480 (after filters)</td></tr>
+    </table>
+    <p><strong>Excluded, and why:</strong> unpublished and deleted content (<code>is_published=false</code> / <code>is_deleted=true</code>) — scoring them as opportunities doesn't make sense. Rows with <code>avg_position = 0</code> (1.5% of rows) — this value means "no position data," not a literal top rank, per the dataset's own convention. No client names, domains, or raw queries appear anywhere in this analysis; all identifiers are dataset-issued pseudonymous hashes.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Methodology</div>
+    <h2>Building the benchmark, then scoring against it</h2>
+    <p><strong>Step 1 — the benchmark.</strong> CTR is heavily zero-inflated at the individual-page level (60.8% of pages had zero clicks in the window), so a single page's own CTR is too noisy to trust alone. The benchmark instead sums clicks and impressions <em>within each position bucket</em> before dividing — an impression-weighted rate, not an average of noisy per-page rates.</p>
+    <p><strong>Step 2 — bucket design.</strong> An initial 7-bucket split showed a thin tail (322 pages at "100+") reversing the expected decay — clear small-sample noise. Buckets were merged to 6 (<code>51+</code>) to remove that artifact, while the separate 11-20 vs. 6-10 anomaly was kept, since both of those buckets are large enough (41k / 62k pages) that merging them would hide a real pattern rather than fix noise.</p>
+    <p><strong>Step 3 — scoring.</strong> Each page's <code>ctr_gap</code> is its bucket's expected CTR minus its actual CTR; <code>opportunity_score</code> weights that gap by the page's own impression volume, so high-traffic underperformers rank above low-traffic ones with an identical percentage gap. Every scored page carries a reason code:</p>
+    <div class="card-grid">
+      <div class="card"><div class="tag">underperforming_for_position</div><p>Real CTR gap, meaningful impression volume (≥100) — the core opportunity list.</p></div>
+      <div class="card"><div class="tag">gap_but_low_volume</div><p>A gap exists, but on too little traffic (&lt;100 impressions) to act on with confidence.</p></div>
+      <div class="card"><div class="tag">meeting_or_beating_expected_ctr</div><p>At or above its position's benchmark — no action indicated.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Results</div>
+    <h2>What the ranked list looks like</h2>
+    <p>The top of the ranked list is dominated by high-impression pages with real CTR gaps — for example, pages ranking positions 4-10 pulling 100k–500k impressions at a CTR of 0.05–0.20%, well under their bucket's 0.34–0.58% benchmark.</p>
+    <table>
+      <tr><th>Position bucket</th><th>Pages</th><th>Impressions</th><th>Expected CTR</th></tr>
+      <tr><td>1-3</td><td class="mono">7,245</td><td class="mono">8,376,926</td><td class="amber mono">0.58%</td></tr>
+      <tr><td>4-5</td><td class="mono">15,639</td><td class="mono">35,493,954</td><td class="amber mono">0.54%</td></tr>
+      <tr><td>6-10</td><td class="mono">62,082</td><td class="mono">119,882,986</td><td class="amber mono">0.34%</td></tr>
+      <tr><td>11-20</td><td class="mono">41,014</td><td class="mono">27,227,539</td><td class="teal mono">0.40%</td></tr>
+      <tr><td>21-50</td><td class="mono">44,016</td><td class="mono">19,052,131</td><td class="amber mono">0.26%</td></tr>
+      <tr><td>51+</td><td class="mono">25,484</td><td class="mono">3,077,212</td><td class="amber mono">0.07%</td></tr>
+    </table>
+    <p>This benchmark is descriptive, not a trained model — there is no baseline to beat here in the precision@K sense used elsewhere in this project's weekly work; the "result" is the empirical curve itself and the ranked gap list it produces.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Limitations &amp; honest framing</div>
+    <h2>What this cannot claim</h2>
+    <ul class="limits">
+      <li><strong>Known weighting issue, not yet resolved:</strong> the current <code>opportunity_score</code> is dominated by a small number of very-high-impression pages from a handful of clients. A future revision should normalize per-client or log-transform impressions so the list reflects genuine relative underperformance, not just raw scale.</li>
+      <li><strong>The 6-10 vs. 11-20 anomaly is unexplained</strong>, not resolved. Plausible causes — SERP feature crowding at 6-10, or an intent-mix difference between buckets — are named but not tested against this data.</li>
+      <li><strong>One month of data (the panel's final month sample).</strong> This is a snapshot, not a trend — it says nothing about whether a page's gap is new or long-standing.</li>
+      <li><strong>Correlational only.</strong> A CTR gap flags a page for human review; it does not diagnose the cause (title, meta description, SERP feature, intent mismatch) or prove that fixing anything would change the outcome.</li>
+      <li><strong>No causal claim about search-engine ranking behavior</strong> is made or implied anywhere in this work.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Ranked recommendations</div>
+    <h2>What to do with this list</h2>
+    <ol class="rec">
+      <li><span><strong>Review <code>underperforming_for_position</code> pages first, sorted by <code>opportunity_score</code></strong> — largest weighted gap, highest confidence in the signal.</span></li>
+      <li><span><strong>Treat <code>gap_but_low_volume</code> as a watchlist, not an action list</strong> — re-check after the page accumulates more impressions.</span></li>
+      <li><span><strong>Fix the impression-weighting before using this for client-facing prioritization</strong> — see Limitations; as-is, the list over-indexes on a few large clients.</span></li>
+      <li><span><strong>Investigate the 11-20/6-10 anomaly with a SERP-feature audit</strong> before assuming it's noise, since sample size rules that out.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Reproducibility</div>
+    <h2>Rerun this yourself</h2>
+    <p>Full notebooks, in order, live in this repo's <code>work/notebooks/</code> and <code>notebooks/</code> folders:</p>
+    <ul>
+      <li><code>03_working_with_the_full_release.ipynb</code> — DuckDB connection, panel checks, this paper's benchmark curve and opportunity scoring, plus a separate honest validation exercise (a decline-prediction model that looked promising under a naive split and failed under a client-grouped split — kept in the repo as a demonstration of leakage-aware validation, not part of this paper's core claim).</li>
+    </ul>
+    <p>Random seeds are fixed at <code class="mono">random_state=42</code> throughout. Repo: <a href="https://github.com/Hashir9099/flyrank-ml">github.com/Hashir9099/flyrank-ml</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>.</p>
+    <p>All identifiers shown are dataset-issued pseudonymous hashes. No client names, domains, or private queries appear in this analysis.</p>
+  </div>
+</footer>
+
+</body>
+</html>
